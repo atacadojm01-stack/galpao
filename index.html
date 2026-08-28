@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Atacadão JM - Planta Interativa do Galpão</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background-color: #12141c; color: #e1e6ed; padding: 10px; }
+
+    /* Cabeçalho Fixo (Sticky) ideal para Mobile */
+    header { 
+      position: sticky; 
+      top: 0; 
+      z-index: 50; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 10px; 
+      margin-bottom: 15px; 
+      background: #1e222d; 
+      padding: 12px 15px; 
+      border-radius: 8px; 
+      border: 1px solid #2d3345; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+    }
+    
+    .header-title { display: flex; justify-content: space-between; align-items: center; }
+    h1 { font-size: 1.1rem; color: #fff; }
+
+    .search-box { display: flex; width: 100%; }
+    .search-box input { 
+      width: 100%; 
+      padding: 12px 15px; 
+      border-radius: 6px; 
+      border: 1px solid #3d455d; 
+      background: #12141c; 
+      color: #fff; 
+      font-size: 1rem; 
+    }
+    .search-box input:focus { border-color: #f39c12; outline: none; }
+
+    /* Layout do Mapa com rolagem suave no toque */
+    .mapa-container { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 15px; 
+      overflow-x: auto; 
+      padding-bottom: 20px; 
+      -webkit-overflow-scrolling: touch; 
+    }
+
+    .carreira { background: #1a1d27; border: 1px solid #2d3345; border-radius: 8px; padding: 12px; min-width: 1050px; }
+    .carreira-titulo { font-size: 1rem; font-weight: bold; color: #f39c12; margin-bottom: 10px; }
+
+    .modulos-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 8px; }
+
+    .modulo { background: #222634; border: 1px solid #353c52; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+    .modulo-header { text-align: center; font-size: 0.75rem; font-weight: bold; color: #a4b0be; border-bottom: 1px solid #2d3345; padding-bottom: 4px; }
+
+    .niveis-container { display: flex; flex-direction: column; gap: 4px; }
+    
+    /* Bloco de Nível Ativo */
+    .nivel-row { display: flex; flex-direction: column; gap: 2px; background: #181a24; padding: 4px; border-radius: 4px; border: 1px solid #2d3345; }
+    .nivel-tag { font-size: 0.6rem; font-weight: bold; color: #00d2d3; margin-bottom: 2px; }
+
+    /* Espaço Vazio Total (Sem borda, sem texto, sem fundo) */
+    .nivel-vazio-espaco { min-height: 54px; background: transparent; border: none; }
+
+    .paletes-split { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .slot-box { background: #2a2e3d; border: 1px dashed #4a5064; border-radius: 4px; padding: 6px 4px; min-height: 44px; cursor: pointer; transition: all 0.2s; }
+    .slot-box:active { background: #353c52; }
+    .slot-label { font-size: 0.55rem; color: #747d8c; text-transform: uppercase; font-weight: bold; margin-bottom: 2px; display: block; }
+
+    .produtos-lista { display: flex; flex-wrap: wrap; gap: 3px; }
+    .produto-pill { background: #3c4858; color: #fff; font-size: 0.65rem; padding: 2px 4px; border-radius: 3px; white-space: nowrap; }
+    .vazio { color: #57606f; font-style: italic; font-size: 0.6rem; }
+
+    .espacador-coluna { background: transparent; }
+
+    /* Destaque da Pesquisa */
+    .slot-box.destaque { background: #f1c40f !important; border: 2px solid #d35400 !important; transform: scale(1.03); box-shadow: 0 0 12px rgba(241, 196, 15, 0.8); z-index: 5; }
+    .slot-box.destaque .slot-label { color: #2c3e50; }
+    .slot-box.destaque .produto-pill { background: #2c3e50; color: #fff; font-weight: bold; }
+    .slot-box .produto-pill.destaque-item { background: #e67e22 !important; color: #fff; }
+
+    /* Modal Otimizado para Telas de Celular */
+    .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; padding: 15px; }
+    .modal-content { background: #1e222d; padding: 20px; border-radius: 12px; width: 100%; max-width: 450px; border: 1px solid #3d455d; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .modal-content h3 { margin-bottom: 8px; color: #f39c12; font-size: 1.1rem; }
+    .modal-content p { font-size: 0.85rem; color: #a4b0be; margin-bottom: 12px; }
+    .modal-content textarea { width: 100%; height: 90px; padding: 10px; background: #12141c; border: 1px solid #3d455d; color: #fff; border-radius: 6px; margin-bottom: 15px; resize: none; font-size: 0.95rem; }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
+    .btn { padding: 12px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+    .btn-save { background: #2ecc71; color: #fff; }
+    .btn-cancel { background: #e74c3c; color: #fff; }
+
+    @media (min-width: 600px) {
+      header { flex-direction: row; }
+      .search-box { max-width: 400px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <h1>Atacadão JM - Mapa</h1>
+    </div>
+    <div class="search-box">
+      <input type="text" id="inputBusca" placeholder="Pesquisar produto..." oninput="buscarProduto()">
+    </div>
+  </header>
+
+  <div class="mapa-container" id="mapa"></div>
+
+  <div class="modal" id="modalEdicao">
+    <div class="modal-content">
+      <h3 id="modalTitulo">Editar Palete</h3>
+      <p>Digite os produtos deste palete separados por <strong>vírgulas</strong>:</p>
+      <textarea id="modalProdutos" placeholder="Ex: Fardo Açúcar, Caixa Oleo, Feijão"></textarea>
+      <div class="modal-buttons">
+        <button class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
+        <button class="btn btn-save" onclick="salvarModal()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dadosCarreiras = [
+      {
+        id: 'A',
+        nome: 'Carreira A',
+        modulos: Array.from({ length: 9 }, (_, i) => ({
+          num: String(i + 1).padStart(2, '0'),
+          niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' }
+        }))
+      },
+      {
+        id: 'B',
+        nome: 'Carreira B',
+        modulos: [
+          ...Array.from({ length: 8 }, (_, i) => {
+            const num = i + 1;
+            return {
+              num: String(num).padStart(2, '0'),
+              niveis: { 3: 'ativo', 2: num === 5 ? 'vazio' : 'ativo', 1: num === 5 ? 'vazio' : 'ativo' }
+            };
+          }),
+          { tipo: 'espacador', span: 1 }
+        ]
+      },
+      {
+        id: 'C',
+        nome: 'Carreira C',
+        modulos: [
+          ...Array.from({ length: 8 }, (_, i) => {
+            const num = i + 1;
+            return {
+              num: String(num).padStart(2, '0'),
+              niveis: { 3: 'ativo', 2: num === 5 ? 'vazio' : 'ativo', 1: num === 5 ? 'vazio' : 'ativo' }
+            };
+          }),
+          { tipo: 'espacador', span: 1 }
+        ]
+      },
+      {
+        id: 'D',
+        nome: 'Carreira D',
+        modulos: [
+          { num: '01', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } },
+          { num: '02', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } },
+          { num: '03', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } },
+          { tipo: 'espacador', span: 2 },
+          { num: '04', niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } },
+          { num: '05', niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } },
+          { num: '06', niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } },
+          { num: '07', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } }
+        ]
+      }
+    ];
+
+    let estoque = JSON.parse(localStorage.getItem('estoque_galpao_v4')) || {};
+    let slotEdicaoAtual = null;
+
+    function renderizarMapa() {
+      const container = document.getElementById('mapa');
+      container.innerHTML = '';
+
+      dadosCarreiras.forEach(c => {
+        const divCarreira = document.createElement('div');
+        divCarreira.className = 'carreira';
+        divCarreira.innerHTML = `<div class="carreira-titulo">${c.nome}</div>`;
+
+        const divGrid = document.createElement('div');
+        divGrid.className = 'modulos-grid';
+
+        c.modulos.forEach(mod => {
+          if (mod.tipo === 'espacador') {
+            const divEspacador = document.createElement('div');
+            divEspacador.className = 'espacador-coluna';
+            if (mod.span) divEspacador.style.gridColumn = `span ${mod.span}`;
+            divGrid.appendChild(divEspacador);
+            return;
+          }
+
+          const divMod = document.createElement('div');
+          divMod.className = 'modulo';
+          divMod.innerHTML = `<div class="modulo-header">Módulo ${mod.num}</div>`;
+
+          const divNiveis = document.createElement('div');
+          divNiveis.className = 'niveis-container';
+
+          [3, 2, 1].forEach(nivelNum => {
+            const statusNivel = mod.niveis[nivelNum];
+            const divRow = document.createElement('div');
+
+            if (statusNivel === 'ativo') {
+              divRow.className = 'nivel-row';
+              const nomeNivel = nivelNum === 3 ? 'N3 (Alto)' : nivelNum === 2 ? 'N2 (Meio)' : 'N1 (Chão)';
+              
+              const divSplit = document.createElement('div');
+              divSplit.className = 'paletes-split';
+
+              ['P1', 'P2'].forEach(pSlot => {
+                const slotKey = `${c.id}-${mod.num}-N${nivelNum}-${pSlot}`;
+                const produtos = estoque[slotKey] || [];
+                const pLabel = pSlot === 'P1' ? 'Esq' : 'Dir';
+
+                const divSlot = document.createElement('div');
+                divSlot.className = 'slot-box';
+                divSlot.id = `slot-${slotKey}`;
+                divSlot.onclick = () => abrirModal(slotKey, `${c.id} - Mod ${mod.num} - ${nomeNivel} - Palete ${pLabel}`);
+
+                let prodHtml = '';
+                if (produtos.length > 0) {
+                  prodHtml = `<div class="produtos-lista">` + 
+                    produtos.map(p => `<span class="produto-pill" data-nome="${p.toLowerCase()}">${p}</span>`).join('') + 
+                    `</div>`;
+                } else {
+                  prodHtml = `<span class="vazio">Vazio</span>`;
+                }
+
+                divSlot.innerHTML = `<span class="slot-label">${pLabel}</span>${prodHtml}`;
+                divSplit.appendChild(divSlot);
+              });
+
+              divRow.innerHTML = `<span class="nivel-tag">${nomeNivel}</span>`;
+              divRow.appendChild(divSplit);
+            } else {
+              // Quando o nível for inexistente/vazio, fica totalmente sem texto ou bordas
+              divRow.className = 'nivel-vazio-espaco';
+            }
+
+            divNiveis.appendChild(divRow);
+          });
+
+          divMod.appendChild(divNiveis);
+          divGrid.appendChild(divMod);
+        });
+
+        divCarreira.appendChild(divGrid);
+        container.appendChild(divCarreira);
+      });
+    }
+
+    function abrirModal(key, titulo) {
+      slotEdicaoAtual = key;
+      document.getElementById('modalTitulo').innerText = titulo;
+      const produtos = estoque[key] || [];
+      document.getElementById('modalProdutos').value = produtos.join(', ');
+      document.getElementById('modalEdicao').style.display = 'flex';
+    }
+
+    function fecharModal() {
+      document.getElementById('modalEdicao').style.display = 'none';
+      slotEdicaoAtual = null;
+    }
+
+    function salvarModal() {
+      if (!slotEdicaoAtual) return;
+      const val = document.getElementById('modalProdutos').value;
+      const itens = val.split(',').map(i => i.trim()).filter(i => i.length > 0);
+
+      if (itens.length > 0) {
+        estoque[slotEdicaoAtual] = itens;
+      } else {
+        delete estoque[slotEdicaoAtual];
+      }
+
+      localStorage.setItem('estoque_galpao_v4', JSON.stringify(estoque));
+      fecharModal();
+      renderizarMapa();
+      buscarProduto();
+    }
+
+    function buscarProduto() {
+      const termo = document.getElementById('inputBusca').value.toLowerCase().trim();
+
+      document.querySelectorAll('.slot-box').forEach(el => el.classList.remove('destaque'));
+      document.querySelectorAll('.produto-pill').forEach(el => el.classList.remove('destaque-item'));
+
+      if (termo === '') return;
+
+      Object.keys(estoque).forEach(key => {
+        const produtos = estoque[key];
+        const bateu = produtos.some(p => p.toLowerCase().includes(termo));
+
+        if (bateu) {
+          const slotEl = document.getElementById(`slot-${key}`);
+          if (slotEl) {
+            slotEl.classList.add('destaque');
+            slotEl.querySelectorAll('.produto-pill').forEach(pill => {
+              if (pill.getAttribute('data-nome').includes(termo)) {
+                pill.classList.add('destaque-item');
+              }
+            });
+          }
+        }
+      });
+    }
+
+    renderizarMapa();
+  </script>
+</body>
+</html>
