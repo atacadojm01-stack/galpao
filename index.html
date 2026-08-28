@@ -8,7 +8,6 @@
     * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body { background-color: #12141c; color: #e1e6ed; padding: 10px; }
 
-    /* Cabeçalho Fixo (Sticky) ideal para Mobile */
     header { 
       position: sticky; 
       top: 0; 
@@ -39,7 +38,6 @@
     }
     .search-box input:focus { border-color: #f39c12; outline: none; }
 
-    /* Layout do Mapa com rolagem suave no toque */
     .mapa-container { 
       display: flex; 
       flex-direction: column; 
@@ -59,11 +57,9 @@
 
     .niveis-container { display: flex; flex-direction: column; gap: 4px; }
     
-    /* Bloco de Nível Ativo */
     .nivel-row { display: flex; flex-direction: column; gap: 2px; background: #181a24; padding: 4px; border-radius: 4px; border: 1px solid #2d3345; }
     .nivel-tag { font-size: 0.6rem; font-weight: bold; color: #00d2d3; margin-bottom: 2px; }
 
-    /* Espaço Vazio Total (Sem borda, sem texto, sem fundo) */
     .nivel-vazio-espaco { min-height: 54px; background: transparent; border: none; }
 
     .paletes-split { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
@@ -77,13 +73,11 @@
 
     .espacador-coluna { background: transparent; }
 
-    /* Destaque da Pesquisa */
     .slot-box.destaque { background: #f1c40f !important; border: 2px solid #d35400 !important; transform: scale(1.03); box-shadow: 0 0 12px rgba(241, 196, 15, 0.8); z-index: 5; }
     .slot-box.destaque .slot-label { color: #2c3e50; }
     .slot-box.destaque .produto-pill { background: #2c3e50; color: #fff; font-weight: bold; }
     .slot-box .produto-pill.destaque-item { background: #e67e22 !important; color: #fff; }
 
-    /* Modal Otimizado para Telas de Celular */
     .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; padding: 15px; }
     .modal-content { background: #1e222d; padding: 20px; border-radius: 12px; width: 100%; max-width: 450px; border: 1px solid #3d455d; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     .modal-content h3 { margin-bottom: 8px; color: #f39c12; font-size: 1.1rem; }
@@ -99,6 +93,9 @@
       .search-box { max-width: 400px; }
     }
   </style>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -126,6 +123,21 @@
   </div>
 
   <script>
+    // Suas credenciais do Firebase integradas
+    const firebaseConfig = {
+      apiKey: "AIzaSyCwxEF3IiuXEsIl5s5H9L7R_fBi2ByppDI",
+      authDomain: "atacadao-jm-estoque.firebaseapp.com",
+      databaseURL: "https://atacadao-jm-estoque-default-rtdb.firebaseio.com",
+      projectId: "atacadao-jm-estoque",
+      storageBucket: "atacadao-jm-estoque.firebasestorage.app",
+      messagingSenderId: "1026908901641",
+      appId: "1:1026908901641:web:a8aa76684b5a51ddd2c3d8",
+      measurementId: "G-FRENRG40K7"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     const dadosCarreiras = [
       {
         id: 'A',
@@ -179,8 +191,15 @@
       }
     ];
 
-    let estoque = JSON.parse(localStorage.getItem('estoque_galpao_v4')) || {};
+    let estoque = {};
     let slotEdicaoAtual = null;
+
+    // Sincronização em tempo real via Firebase Realtime Database
+    db.ref('estoque_galpao').on('value', (snapshot) => {
+      estoque = snapshot.val() || {};
+      renderizarMapa();
+      buscarProduto();
+    });
 
     function renderizarMapa() {
       const container = document.getElementById('mapa');
@@ -247,7 +266,6 @@
               divRow.innerHTML = `<span class="nivel-tag">${nomeNivel}</span>`;
               divRow.appendChild(divSplit);
             } else {
-              // Quando o nível for inexistente/vazio, fica totalmente sem texto ou bordas
               divRow.className = 'nivel-vazio-espaco';
             }
 
@@ -281,16 +299,14 @@
       const val = document.getElementById('modalProdutos').value;
       const itens = val.split(',').map(i => i.trim()).filter(i => i.length > 0);
 
+      // Atualiza diretamente no banco de dados na nuvem do Firebase
       if (itens.length > 0) {
-        estoque[slotEdicaoAtual] = itens;
+        db.ref(`estoque_galpao/${slotEdicaoAtual}`).set(itens);
       } else {
-        delete estoque[slotEdicaoAtual];
+        db.ref(`estoque_galpao/${slotEdicaoAtual}`).remove();
       }
 
-      localStorage.setItem('estoque_galpao_v4', JSON.stringify(estoque));
       fecharModal();
-      renderizarMapa();
-      buscarProduto();
     }
 
     function buscarProduto() {
@@ -318,8 +334,6 @@
         }
       });
     }
-
-    renderizarMapa();
   </script>
 </body>
 </html>
