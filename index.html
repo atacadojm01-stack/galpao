@@ -69,13 +69,13 @@
     .banner-recorte button { background: #fff; color: #d35400; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 8px; }
 
     /* Area de Visualização e Zoom */
-    .mapa-viewport { overflow: auto; max-width: 100%; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
+    .mapa-viewport { overflow: auto; max-width: 100%; -webkit-overflow-scrolling: touch; padding-bottom: 20px; touch-action: pan-x pan-y; }
     .mapa-container { 
       display: flex; 
       flex-direction: column; 
       gap: 15px; 
       transform-origin: top left;
-      transition: transform 0.2s ease-out;
+      transition: transform 0.1s ease-out;
     }
 
     .carreira { background: #1a1d27; border: 1px solid #2d3345; border-radius: 8px; padding: 12px; min-width: 1050px; }
@@ -86,14 +86,34 @@
     .niveis-container { display: flex; flex-direction: column; gap: 4px; }
     .nivel-row { display: flex; flex-direction: column; gap: 2px; background: #181a24; padding: 4px; border-radius: 4px; border: 1px solid #2d3345; }
     .nivel-tag { font-size: 0.6rem; font-weight: bold; color: #00d2d3; margin-bottom: 2px; }
-    .nivel-vazio-espaco { min-height: 54px; background: transparent; border: none; }
+    .nivel-vazio-espaco { height: 54px; background: transparent; border: none; }
     .paletes-split { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     
-    .slot-box { background: #2a2e3d; border: 1px dashed #4a5064; border-radius: 4px; padding: 6px 4px; min-height: 44px; cursor: pointer; transition: all 0.2s; position: relative; }
+    /* FIX: Layout e tamanho do Card cravados para não esticar */
+    .slot-box { 
+      background: #2a2e3d; 
+      border: 1px dashed #4a5064; 
+      border-radius: 4px; 
+      padding: 4px; 
+      height: 48px; 
+      overflow: hidden; 
+      cursor: pointer; 
+      transition: all 0.2s; 
+      position: relative; 
+      display: flex;
+      flex-direction: column;
+    }
     .slot-box:active { background: #353c52; }
-    .slot-label { font-size: 0.55rem; color: #747d8c; text-transform: uppercase; font-weight: bold; margin-bottom: 2px; display: block; }
-    .produtos-lista { display: flex; flex-wrap: wrap; gap: 3px; }
-    .produto-pill { background: #3c4858; color: #fff; font-size: 0.65rem; padding: 2px 4px; border-radius: 3px; white-space: nowrap; }
+    .slot-label { font-size: 0.55rem; color: #747d8c; text-transform: uppercase; font-weight: bold; margin-bottom: 2px; display: block; flex-shrink: 0; }
+    
+    .produtos-lista { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 2px; 
+      overflow: hidden; 
+      max-height: 32px; 
+    }
+    .produto-pill { background: #3c4858; color: #fff; font-size: 0.6rem; padding: 1px 3px; border-radius: 3px; white-space: nowrap; }
     .vazio { color: #57606f; font-style: italic; font-size: 0.6rem; }
     .espacador-coluna { background: transparent; }
 
@@ -144,7 +164,7 @@
 
     .modal-content textarea { width: 100%; height: 75px; padding: 10px; background: #12141c; border: 1px solid #3d455d; color: #fff; border-radius: 6px; margin-bottom: 12px; resize: none; font-size: 0.95rem; }
     
-    /* Botões de Ação de Transferência no Modal */
+    /* Botões de Ação no Modal */
     .acoes-recorte-modal { display: flex; gap: 8px; margin-bottom: 15px; }
     .btn-action-cut { flex: 1; background: #d35400; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn-action-paste { flex: 1; background: #27ae60; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -203,8 +223,8 @@
       <h3 id="modalTitulo">Editar Palete</h3>
       
       <div class="text-area-header">
-        <p style="margin:0;">Produtos (separados por vírgula):</p>
-        <button id="btnVoz" class="btn-voz" onclick="alternarVoz()">🎙️ Ditar Voz</button>
+        <p style="margin:0;">Produtos:</p>
+        <button id="btnVoz" class="btn-voz" onclick="alternarVoz()"> Falar 🎙️ </button>
       </div>
       
       <textarea id="modalProdutos" placeholder="Ex: Fardo Açúcar, Caixa Oleo, Feijão"></textarea>
@@ -257,31 +277,22 @@
     let slotEdicaoTitulo = "";
     let recognition = null;
 
-    // Estado da Busca/Localização
     let resultadosEncontrados = [];
     let indiceBuscaAtual = -1;
-
-    // Estado de Zoom
     let nivelZoom = 1;
 
-    // Estado de Recortar e Colar
     let paleteRecortadoKey = null;
     let paleteRecortadoDados = null;
     let paleteRecortadoTitulo = "";
 
-    // 1. Controle de Zoom
+    // 1. Zoom via Botoes e Pinça (Pinch-to-zoom Mobile)
     function alterarZoom(delta) {
-      nivelZoom = Math.max(0.4, Math.min(1.5, nivelZoom + delta));
+      nivelZoom = Math.max(0.3, Math.min(1.8, nivelZoom + delta));
       aplicarZoom();
     }
 
     function resetZoom() {
-      // Visão Geral se for mobile
-      if (window.innerWidth < 768) {
-        nivelZoom = 0.55;
-      } else {
-        nivelZoom = 1;
-      }
+      nivelZoom = window.innerWidth < 768 ? 0.55 : 1;
       aplicarZoom();
     }
 
@@ -290,6 +301,40 @@
       mapa.style.transform = `scale(${nivelZoom})`;
       document.getElementById('zoomVal').innerText = `${Math.round(nivelZoom * 100)}%`;
     }
+
+    // Eventos de Toque para Pinch-to-Zoom no Mobile
+    let distInicialPinça = 0;
+    let zoomInicialPinça = 1;
+
+    const viewportEl = document.getElementById('mapaViewport');
+
+    viewportEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        distInicialPinça = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        zoomInicialPinça = nivelZoom;
+      }
+    }, { passive: true });
+
+    viewportEl.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && distInicialPinça > 0) {
+        const distAtual = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const fator = distAtual / distInicialPinça;
+        nivelZoom = Math.max(0.3, Math.min(1.8, zoomInicialPinça * fator));
+        aplicarZoom();
+      }
+    }, { passive: true });
+
+    viewportEl.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        distInicialPinça = 0;
+      }
+    }, { passive: true });
 
     // 2. Reconhecimento de Voz
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -333,7 +378,7 @@
       const btn = document.getElementById('btnVoz');
       if (btn) {
         btn.classList.remove('gravando');
-        btn.innerText = '🎙️ Ditar Voz';
+        btn.innerText = ' Falar 🎙️ ';
       }
     }
 
@@ -378,7 +423,8 @@
 
             if (statusNivel === 'ativo') {
               divRow.className = 'nivel-row';
-              const nomeNivel = nivelNum === 3 ? 'N3 (Alto)' : nivelNum === 2 ? 'N2 (Meio)' : 'N1 (Chão)';
+              // Nomes atualizados dos níveis
+              const nomeNivel = nivelNum === 3 ? 'Alto' : nivelNum === 2 ? 'Meio' : 'Chão';
               
               const divSplit = document.createElement('div');
               divSplit.className = 'paletes-split';
@@ -430,7 +476,7 @@
       });
     }
 
-    // 3. Localização Dinâmica de Produtos (Estilo Excel)
+    // Localizador Dinâmico
     function iniciarBusca() {
       const termo = normalizarTexto(document.getElementById('inputBusca').value);
 
@@ -509,7 +555,7 @@
       }
     }
 
-    // 4. Modal e Operações de Recortar e Colar
+    // Modal, Recortar e Colar
     function abrirModal(key, titulo) {
       slotEdicaoAtual = key;
       slotEdicaoTitulo = titulo;
@@ -517,7 +563,6 @@
       const produtos = estoque[key] || [];
       document.getElementById('modalProdutos').value = produtos.join(', ');
 
-      // Atualiza botões do Modal
       const btnRecortar = document.getElementById('btnRecortarModal');
       const btnColar = document.getElementById('btnColarModal');
 
@@ -581,7 +626,6 @@
         if (!confirma) return;
       }
 
-      // Copia para o destino e remove da origem
       db.ref(`estoque_galpao/${destinoKey}`).set(paleteRecortadoDados);
       db.ref(`estoque_galpao/${paleteRecortadoKey}`).remove();
 
