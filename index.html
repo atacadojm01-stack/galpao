@@ -68,14 +68,21 @@
     }
     .banner-recorte button { background: #fff; color: #d35400; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 8px; }
 
-    /* Area de Visualização e Zoom */
-    .mapa-viewport { overflow: auto; max-width: 100%; -webkit-overflow-scrolling: touch; padding-bottom: 20px; touch-action: pan-x pan-y; }
+    /* Area de Visualização e Zoom Dinâmico */
+    .mapa-viewport { 
+      overflow: auto; 
+      max-width: 100%; 
+      -webkit-overflow-scrolling: touch; 
+      padding-bottom: 20px; 
+      touch-action: pan-x pan-y;
+      position: relative;
+    }
     .mapa-container { 
       display: flex; 
       flex-direction: column; 
       gap: 15px; 
-      transform-origin: top left;
-      transition: transform 0.1s ease-out;
+      transform-origin: 0 0;
+      will-change: transform;
     }
 
     .carreira { background: #1a1d27; border: 1px solid #2d3345; border-radius: 8px; padding: 12px; min-width: 1050px; }
@@ -89,7 +96,7 @@
     .nivel-vazio-espaco { height: 54px; background: transparent; border: none; }
     .paletes-split { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     
-    /* FIX: Layout e tamanho do Card cravados para não esticar */
+    /* Tamanho do Card travado para não esticar */
     .slot-box { 
       background: #2a2e3d; 
       border: 1px dashed #4a5064; 
@@ -98,7 +105,7 @@
       height: 48px; 
       overflow: hidden; 
       cursor: pointer; 
-      transition: all 0.2s; 
+      transition: background 0.2s, border 0.2s, transform 0.2s; 
       position: relative; 
       display: flex;
       flex-direction: column;
@@ -285,7 +292,7 @@
     let paleteRecortadoDados = null;
     let paleteRecortadoTitulo = "";
 
-    // 1. Zoom via Botoes e Pinça (Pinch-to-zoom Mobile)
+    // 1. Zoom via Botões
     function alterarZoom(delta) {
       nivelZoom = Math.max(0.3, Math.min(1.8, nivelZoom + delta));
       aplicarZoom();
@@ -302,37 +309,59 @@
       document.getElementById('zoomVal').innerText = `${Math.round(nivelZoom * 100)}%`;
     }
 
-    // Eventos de Toque para Pinch-to-Zoom no Mobile
-    let distInicialPinça = 0;
-    let zoomInicialPinça = 1;
+    // Zoom Dinâmico por Pinça (Focalizado exatamente entre os 2 dedos)
+    let distInicialPinca = 0;
+    let zoomInicialPinca = 1;
+    let pontoFocalContent = { x: 0, y: 0 };
 
     const viewportEl = document.getElementById('mapaViewport');
 
     viewportEl.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
-        distInicialPinça = Math.hypot(
+        distInicialPinca = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
-        zoomInicialPinça = nivelZoom;
+        zoomInicialPinca = nivelZoom;
+
+        const rect = viewportEl.getBoundingClientRect();
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+        // Ponto relativo ao conteúdo (independente de zoom)
+        pontoFocalContent = {
+          x: (viewportEl.scrollLeft + midX) / zoomInicialPinca,
+          y: (viewportEl.scrollTop + midY) / zoomInicialPinca
+        };
       }
     }, { passive: true });
 
     viewportEl.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2 && distInicialPinça > 0) {
+      if (e.touches.length === 2 && distInicialPinca > 0) {
+        if (e.cancelable) e.preventDefault();
+
         const distAtual = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
-        const fator = distAtual / distInicialPinça;
-        nivelZoom = Math.max(0.3, Math.min(1.8, zoomInicialPinça * fator));
+        const fator = distAtual / distInicialPinca;
+        nivelZoom = Math.max(0.3, Math.min(1.8, zoomInicialPinca * fator));
+        
         aplicarZoom();
+
+        const rect = viewportEl.getBoundingClientRect();
+        const midXAtual = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+        const midYAtual = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+
+        // Mantém a posição exata sob os dois dedos ajustando a rolagem
+        viewportEl.scrollLeft = pontoFocalContent.x * nivelZoom - midXAtual;
+        viewportEl.scrollTop = pontoFocalContent.y * nivelZoom - midYAtual;
       }
-    }, { passive: true });
+    }, { passive: false });
 
     viewportEl.addEventListener('touchend', (e) => {
       if (e.touches.length < 2) {
-        distInicialPinça = 0;
+        distInicialPinca = 0;
       }
     }, { passive: true });
 
@@ -423,7 +452,6 @@
 
             if (statusNivel === 'ativo') {
               divRow.className = 'nivel-row';
-              // Nomes atualizados dos níveis
               const nomeNivel = nivelNum === 3 ? 'Alto' : nivelNum === 2 ? 'Meio' : 'Chão';
               
               const divSplit = document.createElement('div');
