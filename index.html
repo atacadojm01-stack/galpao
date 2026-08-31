@@ -78,11 +78,31 @@
     .slot-box.destaque .produto-pill { background: #2c3e50; color: #fff; font-weight: bold; }
     .slot-box .produto-pill.destaque-item { background: #e67e22 !important; color: #fff; }
 
+    /* Estilos do Modal e Ferramentas */
     .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; padding: 15px; }
-    .modal-content { background: #1e222d; padding: 20px; border-radius: 12px; width: 100%; max-width: 450px; border: 1px solid #3d455d; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    .modal-content { background: #1e222d; padding: 20px; border-radius: 12px; width: 100%; max-width: 460px; border: 1px solid #3d455d; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
     .modal-content h3 { margin-bottom: 8px; color: #f39c12; font-size: 1.1rem; }
-    .modal-content p { font-size: 0.85rem; color: #a4b0be; margin-bottom: 12px; }
-    .modal-content textarea { width: 100%; height: 90px; padding: 10px; background: #12141c; border: 1px solid #3d455d; color: #fff; border-radius: 6px; margin-bottom: 15px; resize: none; font-size: 0.95rem; }
+    .modal-content p { font-size: 0.85rem; color: #a4b0be; margin-bottom: 8px; }
+    
+    .text-area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .btn-voz { background: #2980b9; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .btn-voz.gravando { background: #c0392b; animation: pulsar 1.2s infinite; }
+    
+    @keyframes pulsar {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    .modal-content textarea { width: 100%; height: 80px; padding: 10px; background: #12141c; border: 1px solid #3d455d; color: #fff; border-radius: 6px; margin-bottom: 15px; resize: none; font-size: 0.95rem; }
+    
+    /* Seção de Transferência Rápida */
+    .mover-box { background: #151821; border: 1px dashed #f39c12; border-radius: 8px; padding: 10px; margin-bottom: 15px; }
+    .mover-title { font-size: 0.8rem; font-weight: bold; color: #f39c12; margin-bottom: 8px; }
+    .mover-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 8px; }
+    .mover-controls select { background: #1e222d; color: #fff; border: 1px solid #3d455d; padding: 8px; border-radius: 4px; font-size: 0.8rem; }
+    .btn-mover { width: 100%; background: #e67e22; color: #fff; border: none; padding: 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
+
     .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
     .btn { padding: 12px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
     .btn-save { background: #2ecc71; color: #fff; }
@@ -91,6 +111,7 @@
     @media (min-width: 600px) {
       header { flex-direction: row; }
       .search-box { max-width: 400px; }
+      .mover-controls { grid-template-columns: repeat(4, 1fr); }
     }
   </style>
 
@@ -113,8 +134,37 @@
   <div class="modal" id="modalEdicao">
     <div class="modal-content">
       <h3 id="modalTitulo">Editar Palete</h3>
-      <p>Digite os produtos deste palete separados por <strong>vírgulas</strong>:</p>
+      
+      <div class="text-area-header">
+        <p style="margin:0;">Produtos (separados por vírgula):</p>
+        <button id="btnVoz" class="btn-voz" onclick="alternarVoz()">🎙️ Ditar Voz</button>
+      </div>
+      
       <textarea id="modalProdutos" placeholder="Ex: Fardo Açúcar, Caixa Oleo, Feijão"></textarea>
+
+      <div class="mover-box">
+        <div class="mover-title">🚚 Mover palete para outra posição</div>
+        <div class="mover-controls">
+          <select id="moverCarreira">
+            <option value="A">Carreira A</option>
+            <option value="B">Carreira B</option>
+            <option value="C">Carreira C</option>
+            <option value="D">Carreira D</option>
+          </select>
+          <select id="moverModulo"></select>
+          <select id="moverNivel">
+            <option value="N3">N3 (Alto)</option>
+            <option value="N2">N2 (Meio)</option>
+            <option value="N1">N1 (Chão)</option>
+          </select>
+          <select id="moverSlot">
+            <option value="P1">Esq (P1)</option>
+            <option value="P2">Dir (P2)</option>
+          </select>
+        </div>
+        <button class="btn-mover" onclick="transferirPalete()">Confirmar Transferência</button>
+      </div>
+
       <div class="modal-buttons">
         <button class="btn btn-cancel" onclick="fecharModal()">Cancelar</button>
         <button class="btn btn-save" onclick="salvarModal()">Salvar</button>
@@ -123,7 +173,6 @@
   </div>
 
   <script>
-    // Suas credenciais do Firebase integradas
     const firebaseConfig = {
       apiKey: "AIzaSyCwxEF3IiuXEsIl5s5H9L7R_fBi2ByppDI",
       authDomain: "atacadao-jm-estoque.firebaseapp.com",
@@ -138,63 +187,80 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    function normalizarTexto(texto) {
+      if (!texto) return '';
+      return texto
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, "");
+    }
+
     const dadosCarreiras = [
-      {
-        id: 'A',
-        nome: 'Carreira A',
-        modulos: Array.from({ length: 9 }, (_, i) => ({
-          num: String(i + 1).padStart(2, '0'),
-          niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' }
-        }))
-      },
-      {
-        id: 'B',
-        nome: 'Carreira B',
-        modulos: [
-          ...Array.from({ length: 8 }, (_, i) => {
-            const num = i + 1;
-            return {
-              num: String(num).padStart(2, '0'),
-              niveis: { 3: 'ativo', 2: num === 5 ? 'vazio' : 'ativo', 1: num === 5 ? 'vazio' : 'ativo' }
-            };
-          }),
-          { tipo: 'espacador', span: 1 }
-        ]
-      },
-      {
-        id: 'C',
-        nome: 'Carreira C',
-        modulos: [
-          ...Array.from({ length: 8 }, (_, i) => {
-            const num = i + 1;
-            return {
-              num: String(num).padStart(2, '0'),
-              niveis: { 3: 'ativo', 2: num === 5 ? 'vazio' : 'ativo', 1: num === 5 ? 'vazio' : 'ativo' }
-            };
-          }),
-          { tipo: 'espacador', span: 1 }
-        ]
-      },
-      {
-        id: 'D',
-        nome: 'Carreira D',
-        modulos: [
-          { num: '01', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } },
-          { num: '02', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } },
-          { num: '03', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } },
-          { tipo: 'espacador', span: 2 },
-          { num: '04', niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } },
-          { num: '05', niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } },
-          { num: '06', niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } },
-          { num: '07', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } }
-        ]
-      }
+      { id: 'A', nome: 'Carreira A', modulos: Array.from({ length: 9 }, (_, i) => ({ num: String(i + 1).padStart(2, '0'), niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } })) },
+      { id: 'B', nome: 'Carreira B', modulos: [...Array.from({ length: 8 }, (_, i) => ({ num: String(i + 1).padStart(2, '0'), niveis: { 3: 'ativo', 2: (i + 1) === 5 ? 'vazio' : 'ativo', 1: (i + 1) === 5 ? 'vazio' : 'ativo' } })), { tipo: 'espacador', span: 1 }] },
+      { id: 'C', nome: 'Carreira C', modulos: [...Array.from({ length: 8 }, (_, i) => ({ num: String(i + 1).padStart(2, '0'), niveis: { 3: 'ativo', 2: (i + 1) === 5 ? 'vazio' : 'ativo', 1: (i + 1) === 5 ? 'vazio' : 'ativo' } })), { tipo: 'espacador', span: 1 }] },
+      { id: 'D', nome: 'Carreira D', modulos: [{ num: '01', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } }, { num: '02', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } }, { num: '03', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } }, { tipo: 'espacador', span: 2 }, { num: '04', niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } }, { num: '05', niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } }, { num: '06', niveis: { 3: 'ativo', 2: 'ativo', 1: 'ativo' } }, { num: '07', niveis: { 3: 'ativo', 2: 'vazio', 1: 'vazio' } }] }
     ];
 
     let estoque = {};
     let slotEdicaoAtual = null;
+    let recognition = null;
 
-    // Sincronização em tempo real via Firebase Realtime Database
+    // Inicializa Reconhecimento de Voz
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'pt-BR';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onresult = (event) => {
+        const transcricao = event.results[0][0].transcript;
+        const campoTextarea = document.getElementById('modalProdutos');
+        if (campoTextarea.value.trim().length > 0) {
+          campoTextarea.value += ', ' + transcricao;
+        } else {
+          campoTextarea.value = transcricao;
+        }
+        pararVoz();
+      };
+
+      recognition.onerror = () => pararVoz();
+      recognition.onend = () => pararVoz();
+    }
+
+    function alternarVoz() {
+      if (!recognition) {
+        alert('O seu navegador ou dispositivo não suporta ditar por voz.');
+        return;
+      }
+      const btn = document.getElementById('btnVoz');
+      if (btn.classList.contains('gravando')) {
+        recognition.stop();
+        pararVoz();
+      } else {
+        btn.classList.add('gravando');
+        btn.innerText = '🔴 Ouvindo...';
+        recognition.start();
+      }
+    }
+
+    function pararVoz() {
+      const btn = document.getElementById('btnVoz');
+      if (btn) {
+        btn.classList.remove('gravando');
+        btn.innerText = '🎙️ Ditar Voz';
+      }
+    }
+
+    // Popular opções de Módulos (01 a 09)
+    const selectModulo = document.getElementById('moverModulo');
+    for (let i = 1; i <= 9; i++) {
+      const numStr = String(i).padStart(2, '0');
+      selectModulo.innerHTML += `<option value="${numStr}">Mód ${numStr}</option>`;
+    }
+
     db.ref('estoque_galpao').on('value', (snapshot) => {
       estoque = snapshot.val() || {};
       renderizarMapa();
@@ -253,7 +319,7 @@
                 let prodHtml = '';
                 if (produtos.length > 0) {
                   prodHtml = `<div class="produtos-lista">` + 
-                    produtos.map(p => `<span class="produto-pill" data-nome="${p.toLowerCase()}">${p}</span>`).join('') + 
+                    produtos.map(p => `<span class="produto-pill" data-nome="${normalizarTexto(p)}">${p}</span>`).join('') + 
                     `</div>`;
                 } else {
                   prodHtml = `<span class="vazio">Vazio</span>`;
@@ -290,6 +356,8 @@
     }
 
     function fecharModal() {
+      if (recognition) recognition.stop();
+      pararVoz();
       document.getElementById('modalEdicao').style.display = 'none';
       slotEdicaoAtual = null;
     }
@@ -299,7 +367,6 @@
       const val = document.getElementById('modalProdutos').value;
       const itens = val.split(',').map(i => i.trim()).filter(i => i.length > 0);
 
-      // Atualiza diretamente no banco de dados na nuvem do Firebase
       if (itens.length > 0) {
         db.ref(`estoque_galpao/${slotEdicaoAtual}`).set(itens);
       } else {
@@ -309,8 +376,44 @@
       fecharModal();
     }
 
+    function transferirPalete() {
+      if (!slotEdicaoAtual) return;
+
+      const val = document.getElementById('modalProdutos').value;
+      const itens = val.split(',').map(i => i.trim()).filter(i => i.length > 0);
+
+      if (itens.length === 0) {
+        alert('Não há produtos cadastrados neste palete para mover.');
+        return;
+      }
+
+      const cDest = document.getElementById('moverCarreira').value;
+      const mDest = document.getElementById('moverModulo').value;
+      const nDest = document.getElementById('moverNivel').value;
+      const pDest = document.getElementById('moverSlot').value;
+
+      const targetKey = `${cDest}-${mDest}-${nDest}-${pDest}`;
+
+      if (targetKey === slotEdicaoAtual) {
+        alert('A posição de destino é exatamente a mesma atual.');
+        return;
+      }
+
+      // Se já houver produtos no destino, pede confirmação
+      if (estoque[targetKey] && estoque[targetKey].length > 0) {
+        const confirma = confirm(`O destino (${targetKey}) já possui produtos. Deseja sobrescrever?`);
+        if (!confirma) return;
+      }
+
+      // Copia para o destino e limpa a origem
+      db.ref(`estoque_galpao/${targetKey}`).set(itens);
+      db.ref(`estoque_galpao/${slotEdicaoAtual}`).remove();
+
+      fecharModal();
+    }
+
     function buscarProduto() {
-      const termo = document.getElementById('inputBusca').value.toLowerCase().trim();
+      const termo = normalizarTexto(document.getElementById('inputBusca').value);
 
       document.querySelectorAll('.slot-box').forEach(el => el.classList.remove('destaque'));
       document.querySelectorAll('.produto-pill').forEach(el => el.classList.remove('destaque-item'));
@@ -319,14 +422,15 @@
 
       Object.keys(estoque).forEach(key => {
         const produtos = estoque[key];
-        const bateu = produtos.some(p => p.toLowerCase().includes(termo));
+        const bateu = produtos.some(p => normalizarTexto(p).includes(termo));
 
         if (bateu) {
           const slotEl = document.getElementById(`slot-${key}`);
           if (slotEl) {
             slotEl.classList.add('destaque');
             slotEl.querySelectorAll('.produto-pill').forEach(pill => {
-              if (pill.getAttribute('data-nome').includes(termo)) {
+              const nomeNormalizado = pill.getAttribute('data-nome');
+              if (nomeNormalizado && nomeNormalizado.includes(termo)) {
                 pill.classList.add('destaque-item');
               }
             });
