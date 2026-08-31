@@ -83,12 +83,12 @@
       cursor: grabbing;
     }
 
+    /* Removido o transform-origin e will-change para garantir renderização 100% nítida */
     .mapa-container { 
       display: flex; 
       flex-direction: column; 
       gap: 15px; 
-      transform-origin: 0 0;
-      will-change: transform;
+      width: max-content;
     }
 
     .carreira { background: #1a1d27; border: 1px solid #2d3345; border-radius: 8px; padding: 12px; min-width: 1050px; }
@@ -295,7 +295,7 @@
     let paleteRecortadoDados = null;
     let paleteRecortadoTitulo = "";
 
-    // Controles de Zoom
+    // Controles de Zoom usando CSS 'zoom' nativo (Vetorial e 100% Nítido)
     function alterarZoom(delta) {
       nivelZoom = Math.max(0.3, Math.min(1.8, nivelZoom + delta));
       aplicarZoom();
@@ -308,13 +308,13 @@
 
     function aplicarZoom() {
       const mapa = document.getElementById('mapa');
-      mapa.style.transform = `scale(${nivelZoom})`;
+      mapa.style.zoom = nivelZoom;
       document.getElementById('zoomVal').innerText = `${Math.round(nivelZoom * 100)}%`;
     }
 
     const viewportEl = document.getElementById('mapaViewport');
 
-    // 1. Zoom via CTRL + Scroll do Mouse (Desktop)
+    // 1. Zoom via CTRL + Scroll do Mouse focado no ponteiro (Desktop)
     viewportEl.addEventListener('wheel', (e) => {
       if (e.ctrlKey) {
         e.preventDefault();
@@ -342,7 +342,6 @@
     let startX, startY, scrollLeft, scrollTop;
 
     viewportEl.addEventListener('mousedown', (e) => {
-      // Ignora se clicar direto dentro do modal
       if (e.target.closest('.modal')) return;
 
       isMouseDown = true;
