@@ -26,7 +26,7 @@
     .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
     h1 { font-size: 1.1rem; color: #fff; }
 
-    /* Barra de Zoom no Mobile/Desktop */
+    /* Barra de Zoom */
     .zoom-bar { display: flex; align-items: center; gap: 4px; background: #12141c; padding: 4px 8px; border-radius: 6px; border: 1px solid #3d455d; }
     .zoom-btn { background: #2d3345; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
     .zoom-btn:active { background: #3d455d; }
@@ -51,7 +51,7 @@
     .nav-btn:disabled { background: #2d3345; color: #57606f; cursor: not-allowed; }
     .nav-counter { font-size: 0.75rem; color: #f39c12; font-weight: bold; padding: 0 4px; white-space: nowrap; }
 
-    /* Banner de Notificação de Recorte */
+    /* Banner de Recorte */
     .banner-recorte {
       display: none;
       background: #d35400;
@@ -68,7 +68,7 @@
     }
     .banner-recorte button { background: #fff; color: #d35400; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 8px; }
 
-    /* Area de Visualização e Zoom Dinâmico */
+    /* Area de Visualização com Mãozinha de Arrasto */
     .mapa-viewport { 
       overflow: auto; 
       max-width: 100%; 
@@ -76,7 +76,13 @@
       padding-bottom: 20px; 
       touch-action: pan-x pan-y;
       position: relative;
+      cursor: grab;
+      user-select: none;
     }
+    .mapa-viewport.grabbing {
+      cursor: grabbing;
+    }
+
     .mapa-container { 
       display: flex; 
       flex-direction: column; 
@@ -96,7 +102,7 @@
     .nivel-vazio-espaco { height: 54px; background: transparent; border: none; }
     .paletes-split { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     
-    /* Tamanho do Card travado para não esticar */
+    /* Cards */
     .slot-box { 
       background: #2a2e3d; 
       border: 1px dashed #4a5064; 
@@ -124,11 +130,10 @@
     .vazio { color: #57606f; font-style: italic; font-size: 0.6rem; }
     .espacador-coluna { background: transparent; }
 
-    /* Destaques de Busca e Foco */
+    /* Destaques de Busca */
     .slot-box.destaque { background: #5c4710 !important; border: 2px solid #f1c40f !important; }
     .slot-box .produto-pill.destaque-item { background: #e67e22 !important; color: #fff; font-weight: bold; }
     
-    /* Efeito da Seta / Item em Foco Ativo */
     .slot-box.foco-ativo { 
       background: #f1c40f !important; 
       border: 3px solid #e67e22 !important; 
@@ -140,7 +145,6 @@
     .slot-box.foco-ativo .slot-label { color: #12141c; }
     .slot-box.foco-ativo .produto-pill { background: #12141c; color: #fff; }
 
-    /* Palete em Modo Recortado */
     .slot-box.recortado-origem {
       border: 2px dashed #e74c3c !important;
       background: rgba(231, 76, 60, 0.2) !important;
@@ -171,7 +175,6 @@
 
     .modal-content textarea { width: 100%; height: 75px; padding: 10px; background: #12141c; border: 1px solid #3d455d; color: #fff; border-radius: 6px; margin-bottom: 12px; resize: none; font-size: 0.95rem; }
     
-    /* Botões de Ação no Modal */
     .acoes-recorte-modal { display: flex; gap: 8px; margin-bottom: 15px; }
     .btn-action-cut { flex: 1; background: #d35400; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .btn-action-paste { flex: 1; background: #27ae60; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -292,7 +295,7 @@
     let paleteRecortadoDados = null;
     let paleteRecortadoTitulo = "";
 
-    // 1. Zoom via Botões
+    // Controles de Zoom
     function alterarZoom(delta) {
       nivelZoom = Math.max(0.3, Math.min(1.8, nivelZoom + delta));
       aplicarZoom();
@@ -309,12 +312,72 @@
       document.getElementById('zoomVal').innerText = `${Math.round(nivelZoom * 100)}%`;
     }
 
-    // Zoom Dinâmico por Pinça (Focalizado exatamente entre os 2 dedos)
+    const viewportEl = document.getElementById('mapaViewport');
+
+    // 1. Zoom via CTRL + Scroll do Mouse (Desktop)
+    viewportEl.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        const deltaZoom = e.deltaY < 0 ? 0.1 : -0.1;
+        const rect = viewportEl.getBoundingClientRect();
+        
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const zoomAntigo = nivelZoom;
+        nivelZoom = Math.max(0.3, Math.min(1.8, nivelZoom + deltaZoom));
+
+        const pontoContentX = (viewportEl.scrollLeft + mouseX) / zoomAntigo;
+        const pontoContentY = (viewportEl.scrollTop + mouseY) / zoomAntigo;
+
+        aplicarZoom();
+
+        viewportEl.scrollLeft = pontoContentX * nivelZoom - mouseX;
+        viewportEl.scrollTop = pontoContentY * nivelZoom - mouseY;
+      }
+    }, { passive: false });
+
+    // 2. Movimentar a tela arrastando o Mouse (Ferramenta Mãozinha)
+    let isMouseDown = false;
+    let startX, startY, scrollLeft, scrollTop;
+
+    viewportEl.addEventListener('mousedown', (e) => {
+      // Ignora se clicar direto dentro do modal
+      if (e.target.closest('.modal')) return;
+
+      isMouseDown = true;
+      viewportEl.classList.add('grabbing');
+      startX = e.pageX - viewportEl.offsetLeft;
+      startY = e.pageY - viewportEl.offsetTop;
+      scrollLeft = viewportEl.scrollLeft;
+      scrollTop = viewportEl.scrollTop;
+    });
+
+    viewportEl.addEventListener('mouseleave', () => {
+      isMouseDown = false;
+      viewportEl.classList.remove('grabbing');
+    });
+
+    viewportEl.addEventListener('mouseup', () => {
+      isMouseDown = false;
+      viewportEl.classList.remove('grabbing');
+    });
+
+    viewportEl.addEventListener('mousemove', (e) => {
+      if (!isMouseDown) return;
+      e.preventDefault();
+      const x = e.pageX - viewportEl.offsetLeft;
+      const y = e.pageY - viewportEl.offsetTop;
+      const walkX = (x - startX);
+      const walkY = (y - startY);
+      viewportEl.scrollLeft = scrollLeft - walkX;
+      viewportEl.scrollTop = scrollTop - walkY;
+    });
+
+    // 3. Zoom por Pinça (Mobile)
     let distInicialPinca = 0;
     let zoomInicialPinca = 1;
     let pontoFocalContent = { x: 0, y: 0 };
-
-    const viewportEl = document.getElementById('mapaViewport');
 
     viewportEl.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
@@ -328,7 +391,6 @@
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
 
-        // Ponto relativo ao conteúdo (independente de zoom)
         pontoFocalContent = {
           x: (viewportEl.scrollLeft + midX) / zoomInicialPinca,
           y: (viewportEl.scrollTop + midY) / zoomInicialPinca
@@ -353,19 +415,16 @@
         const midXAtual = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
         const midYAtual = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
 
-        // Mantém a posição exata sob os dois dedos ajustando a rolagem
         viewportEl.scrollLeft = pontoFocalContent.x * nivelZoom - midXAtual;
         viewportEl.scrollTop = pontoFocalContent.y * nivelZoom - midYAtual;
       }
     }, { passive: false });
 
     viewportEl.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) {
-        distInicialPinca = 0;
-      }
+      if (e.touches.length < 2) distInicialPinca = 0;
     }, { passive: true });
 
-    // 2. Reconhecimento de Voz
+    // Reconhecimento de Voz
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
@@ -504,7 +563,7 @@
       });
     }
 
-    // Localizador Dinâmico
+    // Busca Dinâmica
     function iniciarBusca() {
       const termo = normalizarTexto(document.getElementById('inputBusca').value);
 
