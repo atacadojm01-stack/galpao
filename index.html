@@ -6,7 +6,7 @@
   <title>Atacadão JM - Planta Interativa do Galpão</title>
   <style>
     * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body { background-color: #12141c; color: #e1e6ed; padding: 10px; }
+    body { background-color: #12141c; color: #e1e6ed; padding: 10px; overflow-x: hidden; }
 
     header { 
       position: sticky; 
@@ -15,7 +15,7 @@
       display: flex; 
       flex-direction: column; 
       gap: 10px; 
-      margin-bottom: 15px; 
+      margin-bottom: 10px; 
       background: #1e222d; 
       padding: 12px 15px; 
       border-radius: 8px; 
@@ -23,62 +23,114 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
     }
     
-    .header-title { display: flex; justify-content: space-between; align-items: center; }
+    .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
     h1 { font-size: 1.1rem; color: #fff; }
 
-    .search-box { display: flex; width: 100%; }
+    /* Barra de Zoom no Mobile/Desktop */
+    .zoom-bar { display: flex; align-items: center; gap: 4px; background: #12141c; padding: 4px 8px; border-radius: 6px; border: 1px solid #3d455d; }
+    .zoom-btn { background: #2d3345; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+    .zoom-btn:active { background: #3d455d; }
+    .zoom-val { font-size: 0.75rem; color: #a4b0be; min-width: 40px; text-align: center; font-weight: bold; }
+
+    /* Busca e Navegação Estilo Excel */
+    .search-row { display: flex; gap: 6px; width: 100%; align-items: center; }
+    .search-box { position: relative; flex: 1; display: flex; }
     .search-box input { 
       width: 100%; 
-      padding: 12px 15px; 
+      padding: 10px 12px; 
       border-radius: 6px; 
       border: 1px solid #3d455d; 
       background: #12141c; 
       color: #fff; 
-      font-size: 1rem; 
+      font-size: 0.95rem; 
     }
     .search-box input:focus { border-color: #f39c12; outline: none; }
 
+    .nav-busca { display: flex; align-items: center; gap: 4px; background: #12141c; padding: 4px 6px; border-radius: 6px; border: 1px solid #3d455d; }
+    .nav-btn { background: #f39c12; color: #12141c; border: none; width: 30px; height: 30px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; }
+    .nav-btn:disabled { background: #2d3345; color: #57606f; cursor: not-allowed; }
+    .nav-counter { font-size: 0.75rem; color: #f39c12; font-weight: bold; padding: 0 4px; white-space: nowrap; }
+
+    /* Banner de Notificação de Recorte */
+    .banner-recorte {
+      display: none;
+      background: #d35400;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      border: 1px solid #e67e22;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    .banner-recorte button { background: #fff; color: #d35400; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 8px; }
+
+    /* Area de Visualização e Zoom */
+    .mapa-viewport { overflow: auto; max-width: 100%; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
     .mapa-container { 
       display: flex; 
       flex-direction: column; 
       gap: 15px; 
-      overflow-x: auto; 
-      padding-bottom: 20px; 
-      -webkit-overflow-scrolling: touch; 
+      transform-origin: top left;
+      transition: transform 0.2s ease-out;
     }
 
     .carreira { background: #1a1d27; border: 1px solid #2d3345; border-radius: 8px; padding: 12px; min-width: 1050px; }
     .carreira-titulo { font-size: 1rem; font-weight: bold; color: #f39c12; margin-bottom: 10px; }
-
     .modulos-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 8px; }
-
     .modulo { background: #222634; border: 1px solid #353c52; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
     .modulo-header { text-align: center; font-size: 0.75rem; font-weight: bold; color: #a4b0be; border-bottom: 1px solid #2d3345; padding-bottom: 4px; }
-
     .niveis-container { display: flex; flex-direction: column; gap: 4px; }
-    
     .nivel-row { display: flex; flex-direction: column; gap: 2px; background: #181a24; padding: 4px; border-radius: 4px; border: 1px solid #2d3345; }
     .nivel-tag { font-size: 0.6rem; font-weight: bold; color: #00d2d3; margin-bottom: 2px; }
-
     .nivel-vazio-espaco { min-height: 54px; background: transparent; border: none; }
-
     .paletes-split { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-    .slot-box { background: #2a2e3d; border: 1px dashed #4a5064; border-radius: 4px; padding: 6px 4px; min-height: 44px; cursor: pointer; transition: all 0.2s; }
+    
+    .slot-box { background: #2a2e3d; border: 1px dashed #4a5064; border-radius: 4px; padding: 6px 4px; min-height: 44px; cursor: pointer; transition: all 0.2s; position: relative; }
     .slot-box:active { background: #353c52; }
     .slot-label { font-size: 0.55rem; color: #747d8c; text-transform: uppercase; font-weight: bold; margin-bottom: 2px; display: block; }
-
     .produtos-lista { display: flex; flex-wrap: wrap; gap: 3px; }
     .produto-pill { background: #3c4858; color: #fff; font-size: 0.65rem; padding: 2px 4px; border-radius: 3px; white-space: nowrap; }
     .vazio { color: #57606f; font-style: italic; font-size: 0.6rem; }
-
     .espacador-coluna { background: transparent; }
 
-    .slot-box.destaque { background: #f1c40f !important; border: 2px solid #d35400 !important; transform: scale(1.03); box-shadow: 0 0 12px rgba(241, 196, 15, 0.8); z-index: 5; }
-    .slot-box.destaque .slot-label { color: #2c3e50; }
-    .slot-box.destaque .produto-pill { background: #2c3e50; color: #fff; font-weight: bold; }
-    .slot-box .produto-pill.destaque-item { background: #e67e22 !important; color: #fff; }
+    /* Destaques de Busca e Foco */
+    .slot-box.destaque { background: #5c4710 !important; border: 2px solid #f1c40f !important; }
+    .slot-box .produto-pill.destaque-item { background: #e67e22 !important; color: #fff; font-weight: bold; }
+    
+    /* Efeito da Seta / Item em Foco Ativo */
+    .slot-box.foco-ativo { 
+      background: #f1c40f !important; 
+      border: 3px solid #e67e22 !important; 
+      transform: scale(1.08); 
+      box-shadow: 0 0 18px rgba(241, 196, 15, 1); 
+      z-index: 10; 
+      animation: pulsoFoco 1s infinite alternate;
+    }
+    .slot-box.foco-ativo .slot-label { color: #12141c; }
+    .slot-box.foco-ativo .produto-pill { background: #12141c; color: #fff; }
 
-    /* Estilos do Modal e Ferramentas */
+    /* Palete em Modo Recortado */
+    .slot-box.recortado-origem {
+      border: 2px dashed #e74c3c !important;
+      background: rgba(231, 76, 60, 0.2) !important;
+      animation: piscarRecorte 1.2s infinite;
+    }
+
+    @keyframes pulsoFoco {
+      from { transform: scale(1.04); }
+      to { transform: scale(1.1); }
+    }
+    @keyframes piscarRecorte {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    /* Modal */
     .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; padding: 15px; }
     .modal-content { background: #1e222d; padding: 20px; border-radius: 12px; width: 100%; max-width: 460px; border: 1px solid #3d455d; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
     .modal-content h3 { margin-bottom: 8px; color: #f39c12; font-size: 1.1rem; }
@@ -88,30 +140,23 @@
     .btn-voz { background: #2980b9; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
     .btn-voz.gravando { background: #c0392b; animation: pulsar 1.2s infinite; }
     
-    @keyframes pulsar {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
-    }
+    @keyframes pulsar { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-    .modal-content textarea { width: 100%; height: 80px; padding: 10px; background: #12141c; border: 1px solid #3d455d; color: #fff; border-radius: 6px; margin-bottom: 15px; resize: none; font-size: 0.95rem; }
+    .modal-content textarea { width: 100%; height: 75px; padding: 10px; background: #12141c; border: 1px solid #3d455d; color: #fff; border-radius: 6px; margin-bottom: 12px; resize: none; font-size: 0.95rem; }
     
-    /* Seção de Transferência Rápida */
-    .mover-box { background: #151821; border: 1px dashed #f39c12; border-radius: 8px; padding: 10px; margin-bottom: 15px; }
-    .mover-title { font-size: 0.8rem; font-weight: bold; color: #f39c12; margin-bottom: 8px; }
-    .mover-controls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 8px; }
-    .mover-controls select { background: #1e222d; color: #fff; border: 1px solid #3d455d; padding: 8px; border-radius: 4px; font-size: 0.8rem; }
-    .btn-mover { width: 100%; background: #e67e22; color: #fff; border: none; padding: 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; cursor: pointer; }
+    /* Botões de Ação de Transferência no Modal */
+    .acoes-recorte-modal { display: flex; gap: 8px; margin-bottom: 15px; }
+    .btn-action-cut { flex: 1; background: #d35400; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-action-paste { flex: 1; background: #27ae60; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
 
     .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
-    .btn { padding: 12px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+    .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
     .btn-save { background: #2ecc71; color: #fff; }
     .btn-cancel { background: #e74c3c; color: #fff; }
 
     @media (min-width: 600px) {
-      header { flex-direction: row; }
-      .search-box { max-width: 400px; }
-      .mover-controls { grid-template-columns: repeat(4, 1fr); }
+      header { flex-direction: column; }
+      .header-top { flex-direction: row; }
     }
   </style>
 
@@ -121,15 +166,37 @@
 <body>
 
   <header>
-    <div class="header-title">
-      <h1>Atacadão JM - Mapa</h1>
+    <div class="header-top">
+      <h1>Atacadão JM - Planta do Galpão</h1>
+      
+      <div class="zoom-bar">
+        <button class="zoom-btn" onclick="alterarZoom(-0.15)" title="Diminuir Zoom">🔍 -</button>
+        <span class="zoom-val" id="zoomVal">100%</span>
+        <button class="zoom-btn" onclick="alterarZoom(0.15)" title="Aumentar Zoom">🔍 +</button>
+        <button class="zoom-btn" onclick="resetZoom()" title="Geral (Ver Tudo)" style="margin-left:4px;">👁️ Visão Geral</button>
+      </div>
     </div>
-    <div class="search-box">
-      <input type="text" id="inputBusca" placeholder="Pesquisar produto..." oninput="buscarProduto()">
+
+    <div class="search-row">
+      <div class="search-box">
+        <input type="text" id="inputBusca" placeholder="Pesquisar produto no estoque..." oninput="iniciarBusca()">
+      </div>
+      <div class="nav-busca">
+        <button class="nav-btn" id="btnPrevBusca" onclick="navegarBusca(-1)" disabled title="Anterior">◀</button>
+        <span class="nav-counter" id="counterBusca">0/0</span>
+        <button class="nav-btn" id="btnNextBusca" onclick="navegarBusca(1)" disabled title="Próximo">▶</button>
+      </div>
     </div>
   </header>
 
-  <div class="mapa-container" id="mapa"></div>
+  <div class="banner-recorte" id="bannerRecorte">
+    <span>✂️ Palete de <strong id="origemRecorteLabel">---</strong> recortado. Clique onde deseja colar!</span>
+    <button onclick="cancelarRecorte()">Cancelar</button>
+  </div>
+
+  <div class="mapa-viewport" id="mapaViewport">
+    <div class="mapa-container" id="mapa"></div>
+  </div>
 
   <div class="modal" id="modalEdicao">
     <div class="modal-content">
@@ -142,27 +209,9 @@
       
       <textarea id="modalProdutos" placeholder="Ex: Fardo Açúcar, Caixa Oleo, Feijão"></textarea>
 
-      <div class="mover-box">
-        <div class="mover-title">🚚 Mover palete para outra posição</div>
-        <div class="mover-controls">
-          <select id="moverCarreira">
-            <option value="A">Carreira A</option>
-            <option value="B">Carreira B</option>
-            <option value="C">Carreira C</option>
-            <option value="D">Carreira D</option>
-          </select>
-          <select id="moverModulo"></select>
-          <select id="moverNivel">
-            <option value="N3">N3 (Alto)</option>
-            <option value="N2">N2 (Meio)</option>
-            <option value="N1">N1 (Chão)</option>
-          </select>
-          <select id="moverSlot">
-            <option value="P1">Esq (P1)</option>
-            <option value="P2">Dir (P2)</option>
-          </select>
-        </div>
-        <button class="btn-mover" onclick="transferirPalete()">Confirmar Transferência</button>
+      <div class="acoes-recorte-modal">
+        <button id="btnRecortarModal" class="btn-action-cut" onclick="recortarPalete()">✂️ Recortar Palete</button>
+        <button id="btnColarModal" class="btn-action-paste" onclick="colarPalete()" style="display:none;">📋 Colar Aqui</button>
       </div>
 
       <div class="modal-buttons">
@@ -205,9 +254,44 @@
 
     let estoque = {};
     let slotEdicaoAtual = null;
+    let slotEdicaoTitulo = "";
     let recognition = null;
 
-    // Inicializa Reconhecimento de Voz
+    // Estado da Busca/Localização
+    let resultadosEncontrados = [];
+    let indiceBuscaAtual = -1;
+
+    // Estado de Zoom
+    let nivelZoom = 1;
+
+    // Estado de Recortar e Colar
+    let paleteRecortadoKey = null;
+    let paleteRecortadoDados = null;
+    let paleteRecortadoTitulo = "";
+
+    // 1. Controle de Zoom
+    function alterarZoom(delta) {
+      nivelZoom = Math.max(0.4, Math.min(1.5, nivelZoom + delta));
+      aplicarZoom();
+    }
+
+    function resetZoom() {
+      // Visão Geral se for mobile
+      if (window.innerWidth < 768) {
+        nivelZoom = 0.55;
+      } else {
+        nivelZoom = 1;
+      }
+      aplicarZoom();
+    }
+
+    function aplicarZoom() {
+      const mapa = document.getElementById('mapa');
+      mapa.style.transform = `scale(${nivelZoom})`;
+      document.getElementById('zoomVal').innerText = `${Math.round(nivelZoom * 100)}%`;
+    }
+
+    // 2. Reconhecimento de Voz
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
@@ -225,14 +309,13 @@
         }
         pararVoz();
       };
-
       recognition.onerror = () => pararVoz();
       recognition.onend = () => pararVoz();
     }
 
     function alternarVoz() {
       if (!recognition) {
-        alert('O seu navegador ou dispositivo não suporta ditar por voz.');
+        alert('O seu dispositivo não suporta ditar por voz.');
         return;
       }
       const btn = document.getElementById('btnVoz');
@@ -254,17 +337,11 @@
       }
     }
 
-    // Popular opções de Módulos (01 a 09)
-    const selectModulo = document.getElementById('moverModulo');
-    for (let i = 1; i <= 9; i++) {
-      const numStr = String(i).padStart(2, '0');
-      selectModulo.innerHTML += `<option value="${numStr}">Mód ${numStr}</option>`;
-    }
-
+    // Sincronização Firebase
     db.ref('estoque_galpao').on('value', (snapshot) => {
       estoque = snapshot.val() || {};
       renderizarMapa();
-      buscarProduto();
+      iniciarBusca();
     });
 
     function renderizarMapa() {
@@ -310,11 +387,17 @@
                 const slotKey = `${c.id}-${mod.num}-N${nivelNum}-${pSlot}`;
                 const produtos = estoque[slotKey] || [];
                 const pLabel = pSlot === 'P1' ? 'Esq' : 'Dir';
+                const tituloCompleto = `${c.id} - Mod ${mod.num} - ${nomeNivel} - Palete ${pLabel}`;
 
                 const divSlot = document.createElement('div');
                 divSlot.className = 'slot-box';
                 divSlot.id = `slot-${slotKey}`;
-                divSlot.onclick = () => abrirModal(slotKey, `${c.id} - Mod ${mod.num} - ${nomeNivel} - Palete ${pLabel}`);
+
+                if (paleteRecortadoKey === slotKey) {
+                  divSlot.classList.add('recortado-origem');
+                }
+
+                divSlot.onclick = () => abrirModal(slotKey, tituloCompleto);
 
                 let prodHtml = '';
                 if (produtos.length > 0) {
@@ -347,11 +430,106 @@
       });
     }
 
+    // 3. Localização Dinâmica de Produtos (Estilo Excel)
+    function iniciarBusca() {
+      const termo = normalizarTexto(document.getElementById('inputBusca').value);
+
+      document.querySelectorAll('.slot-box').forEach(el => el.classList.remove('destaque', 'foco-ativo'));
+      document.querySelectorAll('.produto-pill').forEach(el => el.classList.remove('destaque-item'));
+
+      resultadosEncontrados = [];
+      indiceBuscaAtual = -1;
+
+      if (termo === '') {
+        atualizarContadorBusca();
+        return;
+      }
+
+      Object.keys(estoque).forEach(key => {
+        const produtos = estoque[key];
+        const bateu = produtos.some(p => normalizarTexto(p).includes(termo));
+
+        if (bateu) {
+          resultadosEncontrados.push(key);
+          const slotEl = document.getElementById(`slot-${key}`);
+          if (slotEl) {
+            slotEl.classList.add('destaque');
+            slotEl.querySelectorAll('.produto-pill').forEach(pill => {
+              const nomeNormalizado = pill.getAttribute('data-nome');
+              if (nomeNormalizado && nomeNormalizado.includes(termo)) {
+                pill.classList.add('destaque-item');
+              }
+            });
+          }
+        }
+      });
+
+      if (resultadosEncontrados.length > 0) {
+        indiceBuscaAtual = 0;
+        focarResultado(0);
+      } else {
+        atualizarContadorBusca();
+      }
+    }
+
+    function navegarBusca(direcao) {
+      if (resultadosEncontrados.length === 0) return;
+      indiceBuscaAtual += direcao;
+      if (indiceBuscaAtual < 0) indiceBuscaAtual = resultadosEncontrados.length - 1;
+      if (indiceBuscaAtual >= resultadosEncontrados.length) indiceBuscaAtual = 0;
+      focarResultado(indiceBuscaAtual);
+    }
+
+    function focarResultado(index) {
+      document.querySelectorAll('.slot-box').forEach(el => el.classList.remove('foco-ativo'));
+      const key = resultadosEncontrados[index];
+      const slotEl = document.getElementById(`slot-${key}`);
+      
+      if (slotEl) {
+        slotEl.classList.add('foco-ativo');
+        slotEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
+
+      atualizarContadorBusca();
+    }
+
+    function atualizarContadorBusca() {
+      const btnPrev = document.getElementById('btnPrevBusca');
+      const btnNext = document.getElementById('btnNextBusca');
+      const counter = document.getElementById('counterBusca');
+
+      if (resultadosEncontrados.length === 0) {
+        counter.innerText = '0/0';
+        btnPrev.disabled = true;
+        btnNext.disabled = true;
+      } else {
+        counter.innerText = `${indiceBuscaAtual + 1}/${resultadosEncontrados.length}`;
+        btnPrev.disabled = false;
+        btnNext.disabled = false;
+      }
+    }
+
+    // 4. Modal e Operações de Recortar e Colar
     function abrirModal(key, titulo) {
       slotEdicaoAtual = key;
+      slotEdicaoTitulo = titulo;
       document.getElementById('modalTitulo').innerText = titulo;
       const produtos = estoque[key] || [];
       document.getElementById('modalProdutos').value = produtos.join(', ');
+
+      // Atualiza botões do Modal
+      const btnRecortar = document.getElementById('btnRecortarModal');
+      const btnColar = document.getElementById('btnColarModal');
+
+      btnRecortar.style.display = produtos.length > 0 ? 'flex' : 'none';
+
+      if (paleteRecortadoKey && paleteRecortadoKey !== key) {
+        btnColar.style.display = 'flex';
+        btnColar.innerText = `📋 Colar de (${paleteRecortadoKey})`;
+      } else {
+        btnColar.style.display = 'none';
+      }
+
       document.getElementById('modalEdicao').style.display = 'flex';
     }
 
@@ -376,67 +554,46 @@
       fecharModal();
     }
 
-    function transferirPalete() {
+    function recortarPalete() {
       if (!slotEdicaoAtual) return;
+      const produtos = estoque[slotEdicaoAtual] || [];
+      if (produtos.length === 0) return;
 
-      const val = document.getElementById('modalProdutos').value;
-      const itens = val.split(',').map(i => i.trim()).filter(i => i.length > 0);
+      paleteRecortadoKey = slotEdicaoAtual;
+      paleteRecortadoDados = [...produtos];
+      paleteRecortadoTitulo = slotEdicaoTitulo;
 
-      if (itens.length === 0) {
-        alert('Não há produtos cadastrados neste palete para mover.');
-        return;
-      }
+      document.getElementById('origemRecorteLabel').innerText = paleteRecortadoKey;
+      document.getElementById('bannerRecorte').style.display = 'flex';
 
-      const cDest = document.getElementById('moverCarreira').value;
-      const mDest = document.getElementById('moverModulo').value;
-      const nDest = document.getElementById('moverNivel').value;
-      const pDest = document.getElementById('moverSlot').value;
-
-      const targetKey = `${cDest}-${mDest}-${nDest}-${pDest}`;
-
-      if (targetKey === slotEdicaoAtual) {
-        alert('A posição de destino é exatamente a mesma atual.');
-        return;
-      }
-
-      // Se já houver produtos no destino, pede confirmação
-      if (estoque[targetKey] && estoque[targetKey].length > 0) {
-        const confirma = confirm(`O destino (${targetKey}) já possui produtos. Deseja sobrescrever?`);
-        if (!confirma) return;
-      }
-
-      // Copia para o destino e limpa a origem
-      db.ref(`estoque_galpao/${targetKey}`).set(itens);
-      db.ref(`estoque_galpao/${slotEdicaoAtual}`).remove();
-
+      renderizarMapa();
       fecharModal();
     }
 
-    function buscarProduto() {
-      const termo = normalizarTexto(document.getElementById('inputBusca').value);
+    function colarPalete() {
+      if (!slotEdicaoAtual || !paleteRecortadoKey) return;
 
-      document.querySelectorAll('.slot-box').forEach(el => el.classList.remove('destaque'));
-      document.querySelectorAll('.produto-pill').forEach(el => el.classList.remove('destaque-item'));
+      const destinoKey = slotEdicaoAtual;
+      const produtosDestino = estoque[destinoKey] || [];
 
-      if (termo === '') return;
+      if (produtosDestino.length > 0) {
+        const confirma = confirm(`A posição (${destinoKey}) já contém produtos. Deseja substituir pelo conteúdo recortado?`);
+        if (!confirma) return;
+      }
 
-      Object.keys(estoque).forEach(key => {
-        const produtos = estoque[key];
-        const bateu = produtos.some(p => normalizarTexto(p).includes(termo));
+      // Copia para o destino e remove da origem
+      db.ref(`estoque_galpao/${destinoKey}`).set(paleteRecortadoDados);
+      db.ref(`estoque_galpao/${paleteRecortadoKey}`).remove();
 
-        if (bateu) {
-          const slotEl = document.getElementById(`slot-${key}`);
-          if (slotEl) {
-            slotEl.classList.add('destaque');
-            slotEl.querySelectorAll('.produto-pill').forEach(pill => {
-              const nomeNormalizado = pill.getAttribute('data-nome');
-              if (nomeNormalizado && nomeNormalizado.includes(termo)) {
-                pill.classList.add('destaque-item');
-              }
-            });
-          }
-        }
-      });
+      cancelarRecorte();
+      fecharModal();
+    }
+
+    function cancelarRecorte() {
+      paleteRecortadoKey = null;
+      paleteRecortadoDados = null;
+      document.getElementById('bannerRecorte').style.display = 'none';
+      renderizarMapa();
     }
   </script>
 </body>
