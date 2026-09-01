@@ -6,12 +6,10 @@
   <title>Atacadão JM - Planta Interativa do Galpão</title>
   <style>
     * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    body { background-color: #12141c; color: #e1e6ed; padding: 10px; overflow-x: hidden; }
+    body { background-color: #12141c; color: #e1e6ed; padding: 10px; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
 
     header { 
-      position: sticky; 
-      top: 0; 
-      z-index: 50; 
+      flex-shrink: 0;
       display: flex; 
       flex-direction: column; 
       gap: 10px; 
@@ -21,6 +19,7 @@
       border-radius: 8px; 
       border: 1px solid #2d3345; 
       box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+      z-index: 10;
     }
     
     .header-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -28,11 +27,11 @@
 
     /* Barra de Zoom */
     .zoom-bar { display: flex; align-items: center; gap: 4px; background: #12141c; padding: 4px 8px; border-radius: 6px; border: 1px solid #3d455d; }
-    .zoom-btn { background: #2d3345; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+    .zoom-btn { background: #2d3345; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
     .zoom-btn:active { background: #3d455d; }
-    .zoom-val { font-size: 0.75rem; color: #a4b0be; min-width: 40px; text-align: center; font-weight: bold; }
+    .zoom-val { font-size: 0.75rem; color: #a4b0be; min-width: 45px; text-align: center; font-weight: bold; }
 
-    /* Busca e Navegação Estilo Excel */
+    /* Busca e Navegação */
     .search-row { display: flex; gap: 6px; width: 100%; align-items: center; }
     .search-box { position: relative; flex: 1; display: flex; }
     .search-box input { 
@@ -47,13 +46,14 @@
     .search-box input:focus { border-color: #f39c12; outline: none; }
 
     .nav-busca { display: flex; align-items: center; gap: 4px; background: #12141c; padding: 4px 6px; border-radius: 6px; border: 1px solid #3d455d; }
-    .nav-btn { background: #f39c12; color: #12141c; border: none; width: 30px; height: 30px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; }
+    .nav-btn { background: #f39c12; color: #12141c; border: none; width: 32px; height: 32px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; }
     .nav-btn:disabled { background: #2d3345; color: #57606f; cursor: not-allowed; }
-    .nav-counter { font-size: 0.75rem; color: #f39c12; font-weight: bold; padding: 0 4px; white-space: nowrap; }
+    .nav-counter { font-size: 0.75rem; color: #f39c12; font-weight: bold; padding: 0 6px; white-space: nowrap; }
 
     /* Banner de Recorte */
     .banner-recorte {
       display: none;
+      flex-shrink: 0;
       background: #d35400;
       color: #fff;
       padding: 8px 12px;
@@ -68,26 +68,32 @@
     }
     .banner-recorte button { background: #fff; color: #d35400; border: none; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 8px; }
 
-    /* Area de Visualização com Mãozinha de Arrasto */
+    /* Area do Viewport com Motor de Pan & Zoom Estilo Imagem */
     .mapa-viewport { 
-      overflow: auto; 
-      max-width: 100%; 
-      -webkit-overflow-scrolling: touch; 
-      padding-bottom: 20px; 
-      touch-action: pan-x pan-y;
+      flex: 1;
+      width: 100%;
+      height: 100%;
       position: relative;
+      overflow: hidden; 
+      background: #0d0f17;
+      border-radius: 8px;
+      border: 1px solid #2d3345;
       cursor: grab;
       user-select: none;
+      touch-action: none;
     }
     .mapa-viewport.grabbing {
       cursor: grabbing;
     }
 
+    /* Container do Mapa com Transformação 2D */
     .mapa-container { 
       display: flex; 
       flex-direction: column; 
       gap: 15px; 
       width: fit-content;
+      transform-origin: 0 0;
+      will-change: transform;
     }
 
     .carreira { background: #1a1d27; border: 1px solid #2d3345; border-radius: 8px; padding: 12px; min-width: 1050px; }
@@ -110,7 +116,7 @@
       height: 48px; 
       overflow: hidden; 
       cursor: pointer; 
-      transition: background 0.2s, border 0.2s, transform 0.2s; 
+      transition: background 0.2s, border 0.2s; 
       position: relative; 
       display: flex;
       flex-direction: column;
@@ -136,7 +142,6 @@
     .slot-box.foco-ativo { 
       background: #f1c40f !important; 
       border: 3px solid #e67e22 !important; 
-      transform: scale(1.08); 
       box-shadow: 0 0 18px rgba(241, 196, 15, 1); 
       z-index: 10; 
       animation: pulsoFoco 1s infinite alternate;
@@ -151,8 +156,8 @@
     }
 
     @keyframes pulsoFoco {
-      from { transform: scale(1.04); }
-      to { transform: scale(1.1); }
+      from { opacity: 0.8; }
+      to { opacity: 1; }
     }
     @keyframes piscarRecorte {
       0% { opacity: 1; }
@@ -199,9 +204,9 @@
       <h1>Atacadão JM - Planta do Galpão</h1>
       
       <div class="zoom-bar">
-        <button class="zoom-btn" onclick="alterarZoom(-0.15)" title="Diminuir Zoom">🔍 -</button>
+        <button class="zoom-btn" onclick="zoomBotao(-0.25)" title="Diminuir Zoom">🔍 -</button>
         <span class="zoom-val" id="zoomVal">100%</span>
-        <button class="zoom-btn" onclick="alterarZoom(0.15)" title="Aumentar Zoom">🔍 +</button>
+        <button class="zoom-btn" onclick="zoomBotao(0.25)" title="Aumentar Zoom">🔍 +</button>
         <button class="zoom-btn" onclick="resetZoom()" title="Geral (Ver Tudo)" style="margin-left:4px;">👁️ Visão Geral</button>
       </div>
     </div>
@@ -288,138 +293,176 @@
 
     let resultadosEncontrados = [];
     let indiceBuscaAtual = -1;
-    let nivelZoom = 1;
 
     let paleteRecortadoKey = null;
     let paleteRecortadoDados = null;
     let paleteRecortadoTitulo = "";
 
-    // Controles de Zoom de Alta Definição (Sem Embaçar)
-    function alterarZoom(delta) {
-      nivelZoom = Math.max(0.3, Math.min(1.8, nivelZoom + delta));
-      aplicarZoom();
+    // ==========================================
+    // MOTOR DE PAN & ZOOM 2D (ESTILO VISUALIZADOR DE IMAGEM)
+    // ==========================================
+    let scale = 1;
+    let pointX = 20;
+    let pointY = 20;
+    
+    let isPointerDown = false;
+    let startPointerX = 0;
+    let startPointerY = 0;
+    let startPointX = 0;
+    let startPointY = 0;
+    let hasDragged = false;
+
+    let initialPinchDist = 0;
+    let initialPinchScale = 1;
+    let pinchCenter = { x: 0, y: 0 };
+
+    const viewportEl = document.getElementById('mapaViewport');
+    const mapaEl = document.getElementById('mapa');
+
+    function aplicarTransform(animar = false) {
+      if (animar) {
+        mapaEl.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
+      } else {
+        mapaEl.style.transition = 'none';
+      }
+      mapaEl.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+      document.getElementById('zoomVal').innerText = `${Math.round(scale * 100)}%`;
+    }
+
+    // Zoom concentrado em um ponto focal (mouseX, mouseY)
+    function zoomNoPonto(novoScale, mouseX, mouseY, animar = false) {
+      const scaleLimitado = Math.max(0.3, Math.min(3.5, novoScale));
+      
+      const localX = (mouseX - pointX) / scale;
+      const localY = (mouseY - pointY) / scale;
+
+      pointX = mouseX - localX * scaleLimitado;
+      pointY = mouseY - localY * scaleLimitado;
+      scale = scaleLimitado;
+
+      aplicarTransform(animar);
+    }
+
+    function zoomBotao(delta) {
+      const centroX = viewportEl.clientWidth / 2;
+      const centroY = viewportEl.clientHeight / 2;
+      zoomNoPonto(scale + delta, centroX, centroY, true);
     }
 
     function resetZoom() {
-      nivelZoom = window.innerWidth < 768 ? 0.55 : 1;
-      aplicarZoom();
+      const mapaWidth = mapaEl.offsetWidth || 1100;
+      const mapaHeight = mapaEl.offsetHeight || 800;
+
+      const scaleX = (viewportEl.clientWidth - 40) / mapaWidth;
+      const scaleY = (viewportEl.clientHeight - 40) / mapaHeight;
+
+      scale = Math.min(1, Math.max(0.35, Math.min(scaleX, scaleY)));
+
+      pointX = Math.max(20, (viewportEl.clientWidth - mapaWidth * scale) / 2);
+      pointY = Math.max(20, (viewportEl.clientHeight - mapaHeight * scale) / 2);
+
+      aplicarTransform(true);
     }
 
-    function aplicarZoom() {
-      const mapa = document.getElementById('mapa');
-      mapa.style.zoom = nivelZoom;
-      document.getElementById('zoomVal').innerText = `${Math.round(nivelZoom * 100)}%`;
-    }
-
-    const viewportEl = document.getElementById('mapaViewport');
-
-    // 1. Zoom via CTRL + Scroll do Mouse (Desktop)
+    // 1. Zoom via Roda do Mouse (Ponto focal do cursor)
     viewportEl.addEventListener('wheel', (e) => {
-      if (e.ctrlKey) {
-        e.preventDefault();
-        const deltaZoom = e.deltaY < 0 ? 0.1 : -0.1;
-        const rect = viewportEl.getBoundingClientRect();
-        
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+      e.preventDefault();
+      const rect = viewportEl.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
 
-        const zoomAntigo = nivelZoom;
-        nivelZoom = Math.max(0.3, Math.min(1.8, nivelZoom + deltaZoom));
-
-        const pontoContentX = (viewportEl.scrollLeft + mouseX) / zoomAntigo;
-        const pontoContentY = (viewportEl.scrollTop + mouseY) / zoomAntigo;
-
-        aplicarZoom();
-
-        viewportEl.scrollLeft = pontoContentX * nivelZoom - mouseX;
-        viewportEl.scrollTop = pontoContentY * nivelZoom - mouseY;
-      }
+      const fator = e.deltaY < 0 ? 1.15 : 0.85;
+      zoomNoPonto(scale * fator, mouseX, mouseY, false);
     }, { passive: false });
 
-    // 2. Movimentar a tela arrastando o Mouse (Ferramenta Mãozinha)
-    let isMouseDown = false;
-    let startX, startY, scrollLeft, scrollTop;
-
+    // 2. Drag / Mãozinha (Mouse - Desktop)
     viewportEl.addEventListener('mousedown', (e) => {
       if (e.target.closest('.modal')) return;
 
-      isMouseDown = true;
+      isPointerDown = true;
+      hasDragged = false;
       viewportEl.classList.add('grabbing');
-      startX = e.pageX - viewportEl.offsetLeft;
-      startY = e.pageY - viewportEl.offsetTop;
-      scrollLeft = viewportEl.scrollLeft;
-      scrollTop = viewportEl.scrollTop;
+      
+      startPointerX = e.clientX;
+      startPointerY = e.clientY;
+      startPointX = pointX;
+      startPointY = pointY;
     });
 
-    viewportEl.addEventListener('mouseleave', () => {
-      isMouseDown = false;
-      viewportEl.classList.remove('grabbing');
+    window.addEventListener('mousemove', (e) => {
+      if (!isPointerDown) return;
+
+      const dx = e.clientX - startPointerX;
+      const dy = e.clientY - startPointerY;
+
+      if (Math.hypot(dx, dy) > 5) {
+        hasDragged = true;
+      }
+
+      pointX = startPointX + dx;
+      pointY = startPointY + dy;
+      aplicarTransform(false);
     });
 
-    viewportEl.addEventListener('mouseup', () => {
-      isMouseDown = false;
-      viewportEl.classList.remove('grabbing');
+    window.addEventListener('mouseup', () => {
+      if (isPointerDown) {
+        isPointerDown = false;
+        viewportEl.classList.remove('grabbing');
+      }
     });
 
-    viewportEl.addEventListener('mousemove', (e) => {
-      if (!isMouseDown) return;
-      e.preventDefault();
-      const x = e.pageX - viewportEl.offsetLeft;
-      const y = e.pageY - viewportEl.offsetTop;
-      const walkX = (x - startX);
-      const walkY = (y - startY);
-      viewportEl.scrollLeft = scrollLeft - walkX;
-      viewportEl.scrollTop = scrollTop - walkY;
-    });
-
-    // 3. Zoom por Pinça (Mobile)
-    let distInicialPinca = 0;
-    let zoomInicialPinca = 1;
-    let pontoFocalContent = { x: 0, y: 0 };
-
+    // 3. Pinça (Zoom) e Arrasto (Touch - Mobile)
     viewportEl.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        distInicialPinca = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        zoomInicialPinca = nivelZoom;
-
+      if (e.touches.length === 1) {
+        isPointerDown = true;
+        hasDragged = false;
+        startPointerX = e.touches[0].clientX;
+        startPointerY = e.touches[0].clientY;
+        startPointX = pointX;
+        startPointY = pointY;
+      } else if (e.touches.length === 2) {
+        isPointerDown = false;
         const rect = viewportEl.getBoundingClientRect();
-        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
-        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
 
-        pontoFocalContent = {
-          x: (viewportEl.scrollLeft + midX) / zoomInicialPinca,
-          y: (viewportEl.scrollTop + midY) / zoomInicialPinca
+        initialPinchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        initialPinchScale = scale;
+
+        pinchCenter = {
+          x: (t1.clientX + t2.clientX) / 2 - rect.left,
+          y: (t1.clientY + t2.clientY) / 2 - rect.top
         };
       }
     }, { passive: true });
 
     viewportEl.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2 && distInicialPinca > 0) {
+      if (e.touches.length === 1 && isPointerDown) {
+        const dx = e.touches[0].clientX - startPointerX;
+        const dy = e.touches[0].clientY - startPointerY;
+
+        if (Math.hypot(dx, dy) > 5) {
+          hasDragged = true;
+        }
+
+        pointX = startPointX + dx;
+        pointY = startPointY + dy;
+        aplicarTransform(false);
+      } else if (e.touches.length === 2 && initialPinchDist > 0) {
         if (e.cancelable) e.preventDefault();
 
-        const distAtual = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const fator = distAtual / distInicialPinca;
-        nivelZoom = Math.max(0.3, Math.min(1.8, zoomInicialPinca * fator));
-        
-        aplicarZoom();
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 
-        const rect = viewportEl.getBoundingClientRect();
-        const midXAtual = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
-        const midYAtual = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
-
-        viewportEl.scrollLeft = pontoFocalContent.x * nivelZoom - midXAtual;
-        viewportEl.scrollTop = pontoFocalContent.y * nivelZoom - midYAtual;
+        const fator = dist / initialPinchDist;
+        zoomNoPonto(initialPinchScale * fator, pinchCenter.x, pinchCenter.y, false);
       }
     }, { passive: false });
 
     viewportEl.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) distInicialPinca = 0;
+      if (e.touches.length < 2) initialPinchDist = 0;
+      if (e.touches.length === 0) isPointerDown = false;
     }, { passive: true });
 
     // Reconhecimento de Voz
@@ -475,6 +518,8 @@
       iniciarBusca();
     });
 
+    let mapaInicializado = false;
+
     function renderizarMapa() {
       const container = document.getElementById('mapa');
       container.innerHTML = '';
@@ -528,7 +573,10 @@
                   divSlot.classList.add('recortado-origem');
                 }
 
-                divSlot.onclick = () => abrirModal(slotKey, tituloCompleto);
+                // Só abre modal se o usuário não estava arrastando a tela
+                divSlot.onclick = () => {
+                  if (!hasDragged) abrirModal(slotKey, tituloCompleto);
+                };
 
                 let prodHtml = '';
                 if (produtos.length > 0) {
@@ -559,9 +607,16 @@
         divCarreira.appendChild(divGrid);
         container.appendChild(divCarreira);
       });
+
+      if (!mapaInicializado) {
+        setTimeout(() => {
+          resetZoom();
+          mapaInicializado = true;
+        }, 100);
+      }
     }
 
-    // Busca Dinâmica
+    // Busca Dinâmica com Centralização Automática no Ponto
     function iniciarBusca() {
       const termo = normalizarTexto(document.getElementById('inputBusca').value);
 
@@ -618,7 +673,26 @@
       
       if (slotEl) {
         slotEl.classList.add('foco-ativo');
-        slotEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+        // Posição do slot relativa ao mapa desescalado
+        const slotRect = slotEl.getBoundingClientRect();
+        const mapaRect = mapaEl.getBoundingClientRect();
+
+        const slotLocalX = (slotRect.left - mapaRect.left) / scale;
+        const slotLocalY = (slotRect.top - mapaRect.top) / scale;
+        const slotWidth = slotRect.width / scale;
+        const slotHeight = slotRect.height / scale;
+
+        if (scale < 1.0) scale = 1.1; // Ajusta o zoom para visualização nítida se estiver muito longe
+
+        const centroSlotX = slotLocalX + slotWidth / 2;
+        const centroSlotY = slotLocalY + slotHeight / 2;
+
+        // Centraliza o slot exatamente no meio do viewport
+        pointX = viewportEl.clientWidth / 2 - centroSlotX * scale;
+        pointY = viewportEl.clientHeight / 2 - centroSlotY * scale;
+
+        aplicarTransform(true);
       }
 
       atualizarContadorBusca();
