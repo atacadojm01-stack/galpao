@@ -87,18 +87,11 @@
       display: flex; 
       flex-direction: column; 
       gap: 15px; 
-      width: fit-content;
+      transform-origin: 0 0;
+      will-change: transform;
     }
 
-    /* Largura fixa ajustada para manter as dimensões originais exatas dos cards */
-    .carreira { 
-      background: #1a1d27; 
-      border: 1px solid #2d3345; 
-      border-radius: 8px; 
-      padding: 12px; 
-      width: 1050px; 
-    }
-    
+    .carreira { background: #1a1d27; border: 1px solid #2d3345; border-radius: 8px; padding: 12px; min-width: 1050px; }
     .carreira-titulo { font-size: 1rem; font-weight: bold; color: #f39c12; margin-bottom: 10px; }
     .modulos-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 8px; }
     .modulo { background: #222634; border: 1px solid #353c52; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
@@ -302,7 +295,7 @@
     let paleteRecortadoDados = null;
     let paleteRecortadoTitulo = "";
 
-    // Controles de Zoom Nítido
+    // Controles de Zoom
     function alterarZoom(delta) {
       nivelZoom = Math.max(0.3, Math.min(1.8, nivelZoom + delta));
       aplicarZoom();
@@ -315,7 +308,7 @@
 
     function aplicarZoom() {
       const mapa = document.getElementById('mapa');
-      mapa.style.zoom = nivelZoom;
+      mapa.style.transform = `scale(${nivelZoom})`;
       document.getElementById('zoomVal').innerText = `${Math.round(nivelZoom * 100)}%`;
     }
 
@@ -349,6 +342,7 @@
     let startX, startY, scrollLeft, scrollTop;
 
     viewportEl.addEventListener('mousedown', (e) => {
+      // Ignora se clicar direto dentro do modal
       if (e.target.closest('.modal')) return;
 
       isMouseDown = true;
