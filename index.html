@@ -83,15 +83,22 @@
       cursor: grabbing;
     }
 
-    /* Removido o transform-origin e will-change para garantir renderização 100% nítida */
     .mapa-container { 
       display: flex; 
       flex-direction: column; 
       gap: 15px; 
-      width: max-content;
+      width: fit-content;
     }
 
-    .carreira { background: #1a1d27; border: 1px solid #2d3345; border-radius: 8px; padding: 12px; min-width: 1050px; }
+    /* Largura fixa ajustada para manter as dimensões originais exatas dos cards */
+    .carreira { 
+      background: #1a1d27; 
+      border: 1px solid #2d3345; 
+      border-radius: 8px; 
+      padding: 12px; 
+      width: 1050px; 
+    }
+    
     .carreira-titulo { font-size: 1rem; font-weight: bold; color: #f39c12; margin-bottom: 10px; }
     .modulos-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 8px; }
     .modulo { background: #222634; border: 1px solid #353c52; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
@@ -295,7 +302,7 @@
     let paleteRecortadoDados = null;
     let paleteRecortadoTitulo = "";
 
-    // Controles de Zoom usando CSS 'zoom' nativo (Vetorial e 100% Nítido)
+    // Controles de Zoom Nítido
     function alterarZoom(delta) {
       nivelZoom = Math.max(0.3, Math.min(1.8, nivelZoom + delta));
       aplicarZoom();
@@ -314,7 +321,7 @@
 
     const viewportEl = document.getElementById('mapaViewport');
 
-    // 1. Zoom via CTRL + Scroll do Mouse focado no ponteiro (Desktop)
+    // 1. Zoom via CTRL + Scroll do Mouse (Desktop)
     viewportEl.addEventListener('wheel', (e) => {
       if (e.ctrlKey) {
         e.preventDefault();
